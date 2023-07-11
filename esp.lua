@@ -151,8 +151,8 @@ do
             };
             Healthbar = {
                 Enabled = false; 
-                Empty = Color3.fromRGB(255, 26, 56);
-                Color = Color3.fromRGB(255, 90, 241);
+                Empty = Color3.fromRGB(255, 0, 0);
+                Color = Color3.fromRGB(0, 255, 0);
                 OutlineColor = Color3.fromRGB(0, 0, 0);
                 ColorMode = "Lerp" -- // Lerp or Gradient
             };
@@ -191,6 +191,20 @@ do
                 Size = 25;
                 Radius = 500;
                 Indicators = {};
+            };
+            NewChams = {
+                Enabled = false;
+                FillColor = Color3.fromRGB(100,116,252);
+                FillTransparency = 0.5;
+                OutlineColor = Color3.fromRGB(78, 90, 199);
+                OutlineTransparency = 0.5;
+            };
+            Highlight = {
+                Enabled = false;
+                TargetColor = Color3.fromRGB(255, 94, 94);
+                Target = nil;
+                Friends = false;
+                FriendColor = Color3.fromRGB(56, 122, 255);
             };
             Measurements = {
                 Meters = {"m", 1};
@@ -442,9 +456,7 @@ do
             Library.CreateRender(Player, Library.GetCharacter(Player));
         end;
         Utility.Connection(Players, "PlayerAdded", function(Player)
-            if Player.Team ~= LocalPlayer.Team then
-                Library.CreateRender(Player, Library.GetCharacter(Player));
-            end
+            Library.CreateRender(Player, Library.GetCharacter(Player));
         end);
         Utility.Connection(Players, "PlayerRemoving", function(Player)
             Library.RemoveRender(Player);
@@ -484,6 +496,22 @@ do
                         SetRenderProperty(Object, "Visible", false);
                     end;
                 end;
+                if Character then
+                    for _,g in pairs(Character:GetChildren()) do -- J please fix this. i literally don't even know what the issue is lol
+                        --print(g.Name)
+                        if (g:IsA("BasePart") or g:IsA("MeshPart") or g:IsA("Part")) and g.Transparency ~= 1 then
+                            if g:FindFirstChild("Cham") and g:FindFirstChild("Glow") then
+                                g.Glow:Destroy()
+                                g.Cham:Destroy()
+    
+                                --[[
+                                g.Glow:Destory() -- p1000 destory command :3 office codenz
+                                g.Cham:Destory()
+                                ]]--
+                            end
+                        end
+                    end
+                end
                 continue; 
             end;
 
@@ -508,6 +536,8 @@ do
                     local StudConversion = Floor((Root.CFrame.p - CurrentCamera.CFrame.p).magnitude);
                     local MeterConversion = Floor(StudConversion / 3.5714285714);   
                     local CurrentConversion = Floor(MeterConversion * Library.Settings.Measurements[Library.Settings.Distance.Measurement][2]);
+                    local IsTarget = Library.Settings.Highlight.Enabled and Library.Settings.Highlight.Target == Player and true or false;
+                    local IsFriends = Library.Settings.Highlight.Friends and LocalPlayer:IsFriendsWith(tostring(Player.UserId)) and true or false;
 
                     -- // Box sizing
                     local BoxSize = Utility.Round(Vector(Max(Width, Library.Settings.Box.Style == "Square" and 6 or 12), Max(Height, Library.Settings.Box.Style == "Square" and 10 or 18)));
@@ -544,18 +574,77 @@ do
                     
 
                     if Onscreen and Library.Settings.Distance.MaxDistance > CurrentConversion then
-                        -- // Chams
-                        if Library.Settings.Chams.Enabled then
-                            Chams.Adornee = Character;
-                            Chams.Enabled = Library.Settings.Chams.Enabled;
-                            Chams.FillColor = Library.Settings.Chams.Color
-                            Chams.OutlineColor = Library.Settings.Chams.OutlineColor;
-                            Chams.FillTransparency = Library.Settings.Chams.Transparency;
-                            Chams.OutlineTransparency = Library.Settings.Chams.OutlineTransparency;
-                            Chams.DepthMode = Enum.HighlightDepthMode[Library.Settings.Chams.Depth];
-                        else 
-                            Chams.Enabled = false;
-                        end;
+                        -- // Shitty Chams
+                        if Library.Settings.NewChams.Enabled then
+                            for _,g in pairs(Character:GetChildren()) do
+                                -- if g:IsA("BasePart") and g.Transparency >= 1 then  -- this is what im assumin
+                                if (g:IsA("BasePart") or g:IsA("MeshPart") or g:IsA("Part")) and g.Transparency ~= 1 then -- this is gonna be gay but the g.Transparency is  ur issue :3
+                                    if not (g:FindFirstChild("Cham") and g:FindFirstChild("Glow")) then
+                                        if g.Name ~= "Head" then
+                                            local Cham = Instance.new("BoxHandleAdornment", g)
+                                            local Glow = Instance.new("BoxHandleAdornment", g)
+                                            Cham.Name = "Cham"
+                                            Glow.Name = "Glow"
+                                        else
+                                            local Cham = Instance.new("CylinderHandleAdornment", g)
+                                            local Glow = Instance.new("CylinderHandleAdornment", g)
+                                            Cham.Name = "Cham"
+                                            Glow.Name = "Glow"
+                                        end
+    
+                                    end
+    
+                                    if g.Name ~= "Head" then
+                                        g.Cham.Adornee = g
+                                        g.Cham.Transparency = 1 - Library.Settings.NewChams.FillTransparency
+                                        g.Cham.Color3 = (IsTarget and Library.Settings.Highlight.TargetColor or IsFriends and Library.Settings.Highlight.FriendColor) or Library.Settings.NewChams.FillColor
+                                        g.Cham.Size = g.Size * 1.01
+                                        g.Cham.ZIndex = 1
+                                        g.Cham.AlwaysOnTop = true
+                                        
+                                        g.Glow.Adornee = g
+                                        g.Glow.Transparency = 1 - Library.Settings.NewChams.OutlineTransparency
+                                        g.Glow.Color3 = Library.Settings.NewChams.OutlineColor
+                                        g.Glow.Size = g.Size * 1.1
+                                        g.Glow.ZIndex = -1
+                                        g.Glow.AlwaysOnTop = false
+                                    else
+                                        g.Cham.Adornee = g
+                                        g.Cham.Transparency = 1 - Library.Settings.NewChams.FillTransparency
+                                        g.Cham.Color3 = (IsTarget and Library.Settings.Highlight.TargetColor or IsFriends and Library.Settings.Highlight.FriendColor) or Library.Settings.NewChams.FillColor
+                                        g.Cham.Height = g.Size.y + 0.3 - 0.2
+                                        g.Cham.Radius = g.Size.x * 0.5 + 0.2 - 0.2
+                                        g.Cham.CFrame = CFrame.new(Vector3.new(), Vector3.new(0, 1, 0))
+                                        g.Cham.ZIndex = 1
+                                        g.Cham.AlwaysOnTop = true
+                                        
+                                        g.Glow.Adornee = g
+                                        g.Glow.Transparency = 1 - Library.Settings.NewChams.OutlineTransparency
+                                        g.Glow.Color3 = Library.Settings.NewChams.OutlineColor
+                                        g.Glow.Height = g.Size.y + 0.3
+                                        g.Glow.Radius = g.Size.x * 0.5 + 0.2
+                                        g.Glow.CFrame = CFrame.new(Vector3.new(), Vector3.new(0, 1, 0))
+                                        g.Glow.AlwaysOnTop = false
+                                    end
+                                end
+                            end
+                        else
+                            for _,g in pairs(Character:GetChildren()) do -- J please fix this. i literally don't even know what the issue is lol
+                                --print(g.Name)
+                                if (g:IsA("BasePart") or g:IsA("MeshPart") or g:IsA("Part")) and g.Transparency ~= 1 then
+                                    if g:FindFirstChild("Cham") and g:FindFirstChild("Glow") then
+                                        g.Glow:Destroy()
+                                        g.Cham:Destroy()
+    
+                                        --[[
+                                        g.Glow:Destory() -- p1000 destory command :3 office codenz
+                                        g.Cham:Destory()
+                                        ]]--
+                                    end
+                                end
+                            end
+                        end
+
 
                         -- // Box
                         SetRenderProperty(Box, "Visible", Library.Settings.Box.Style == "Square" and Library.Settings.Box.Enabled or false);
@@ -563,7 +652,7 @@ do
                         if GetRenderProperty(Box, "Visible") then
                             SetRenderProperty(Box, "Size", BoxSize);
                             SetRenderProperty(Box, "Position", BoxPosition);
-                            SetRenderProperty(Box, "Color", Library.Settings.Box.Color);
+                            SetRenderProperty(Box, "Color", (IsTarget and Library.Settings.Highlight.TargetColor or IsFriends and Library.Settings.Highlight.FriendColor) or Library.Settings.Box.Color);
 
                             -- // Box Outline
                             SetRenderProperty(BoxOutline, "Size", BoxSize);
@@ -585,56 +674,56 @@ do
                             SetRenderProperty(BoxCorners[1], "Visible", true);
                             SetRenderProperty(BoxCorners[1], "From", TL);
                             SetRenderProperty(BoxCorners[1], "To", GetRenderProperty(BoxCorners[1], "From") + Vector(0, BoxSize.X / 3));
-                            SetRenderProperty(BoxCorners[1], "Color", Library.Settings.Box.Color);
+                            SetRenderProperty(BoxCorners[1], "Color", (IsTarget and Library.Settings.Highlight.TargetColor or IsFriends and Library.Settings.Highlight.FriendColor) or Library.Settings.Box.Color);
                             SetRenderProperty(BoxCorners[1], "Thickness", 0);
                             SetRenderProperty(BoxCorners[1], "ZIndex", 3);
                         
                             SetRenderProperty(BoxCorners[2], "Visible", true);
                             SetRenderProperty(BoxCorners[2], "From", TL + Vector(1, 0));
                             SetRenderProperty(BoxCorners[2], "To", GetRenderProperty(BoxCorners[2], "From") + Vector(BoxSize.X / 3, 0));
-                            SetRenderProperty(BoxCorners[2], "Color", Library.Settings.Box.Color);
+                            SetRenderProperty(BoxCorners[2], "Color", (IsTarget and Library.Settings.Highlight.TargetColor or IsFriends and Library.Settings.Highlight.FriendColor) or Library.Settings.Box.Color);
                             SetRenderProperty(BoxCorners[2], "Thickness", 0);
                             SetRenderProperty(BoxCorners[2], "ZIndex", 3);
                         
                             SetRenderProperty(BoxCorners[3], "Visible", true);
                             SetRenderProperty(BoxCorners[3], "From", TR);
                             SetRenderProperty(BoxCorners[3], "To", GetRenderProperty(BoxCorners[3], "From") + Vector(-BoxSize.X / 3, 0));
-                            SetRenderProperty(BoxCorners[3], "Color", Library.Settings.Box.Color);
+                            SetRenderProperty(BoxCorners[3], "Color", (IsTarget and Library.Settings.Highlight.TargetColor or IsFriends and Library.Settings.Highlight.FriendColor) or Library.Settings.Box.Color);
                             SetRenderProperty(BoxCorners[3], "Thickness", 0);
                             SetRenderProperty(BoxCorners[3], "ZIndex", 3);
                         
                             SetRenderProperty(BoxCorners[4], "Visible", true);
                             SetRenderProperty(BoxCorners[4], "From", TR);
                             SetRenderProperty(BoxCorners[4], "To", GetRenderProperty(BoxCorners[4], "From") + Vector(0, BoxSize.X / 3));
-                            SetRenderProperty(BoxCorners[4], "Color", Library.Settings.Box.Color);
+                            SetRenderProperty(BoxCorners[4], "Color", (IsTarget and Library.Settings.Highlight.TargetColor or IsFriends and Library.Settings.Highlight.FriendColor) or Library.Settings.Box.Color);
                             SetRenderProperty(BoxCorners[4], "Thickness", 0);
                             SetRenderProperty(BoxCorners[4], "ZIndex", 3);
                         
                             SetRenderProperty(BoxCorners[5], "Visible", true);
                             SetRenderProperty(BoxCorners[5], "From", BR + Vector(0,1));
                             SetRenderProperty(BoxCorners[5], "To", GetRenderProperty(BoxCorners[5], "From") + Vector(0, -BoxSize.X / 3))
-                            SetRenderProperty(BoxCorners[5], "Color", Library.Settings.Box.Color);
+                            SetRenderProperty(BoxCorners[5], "Color", (IsTarget and Library.Settings.Highlight.TargetColor or IsFriends and Library.Settings.Highlight.FriendColor) or Library.Settings.Box.Color);
                             SetRenderProperty(BoxCorners[5], "Thickness", 0);
                             SetRenderProperty(BoxCorners[5], "ZIndex", 3);
                         
                             SetRenderProperty(BoxCorners[6], "Visible", true);
                             SetRenderProperty(BoxCorners[6], "From", BR);
                             SetRenderProperty(BoxCorners[6], "To", GetRenderProperty(BoxCorners[6], "From") + Vector(-BoxSize.X / 3, 0));
-                            SetRenderProperty(BoxCorners[6], "Color", Library.Settings.Box.Color);
+                            SetRenderProperty(BoxCorners[6], "Color", (IsTarget and Library.Settings.Highlight.TargetColor or IsFriends and Library.Settings.Highlight.FriendColor) or Library.Settings.Box.Color);
                             SetRenderProperty(BoxCorners[6], "Thickness", 0);
                             SetRenderProperty(BoxCorners[6], "ZIndex", 3);
                         
                             SetRenderProperty(BoxCorners[7], "Visible", true);
                             SetRenderProperty(BoxCorners[7], "From", BL);
                             SetRenderProperty(BoxCorners[7], "To", GetRenderProperty(BoxCorners[7], "From") + Vector(0, -BoxSize.X / 3))
-                            SetRenderProperty(BoxCorners[7], "Color", Library.Settings.Box.Color);
+                            SetRenderProperty(BoxCorners[7], "Color", (IsTarget and Library.Settings.Highlight.TargetColor or IsFriends and Library.Settings.Highlight.FriendColor) or Library.Settings.Box.Color);
                             SetRenderProperty(BoxCorners[7], "Thickness", 0);
                             SetRenderProperty(BoxCorners[7], "ZIndex", 3);
                         
                             SetRenderProperty(BoxCorners[8], "Visible", true);
                             SetRenderProperty(BoxCorners[8], "From", BL);
                             SetRenderProperty(BoxCorners[8], "To", GetRenderProperty(BoxCorners[8], "From") + Vector(BoxSize.X / 3, 0));
-                            SetRenderProperty(BoxCorners[8], "Color", Library.Settings.Box.Color);
+                            SetRenderProperty(BoxCorners[8], "Color", (IsTarget and Library.Settings.Highlight.TargetColor or IsFriends and Library.Settings.Highlight.FriendColor) or Library.Settings.Box.Color);
                             SetRenderProperty(BoxCorners[8], "Thickness", 0);
                             SetRenderProperty(BoxCorners[8], "ZIndex", 3);
                         
@@ -754,7 +843,7 @@ do
                             SetRenderProperty(Name, "Size", 13);
                             SetRenderProperty(Name, "Font", Drawing.Fonts["Plex"]);
                             SetRenderProperty(Name, "Text", Player.Name);
-                            SetRenderProperty(Name, "Color", Library.Settings.Name.Color);        
+                            SetRenderProperty(Name, "Color", (IsTarget and Library.Settings.Highlight.TargetColor or IsFriends and Library.Settings.Highlight.FriendColor) or Library.Settings.Name.Color);        
                             SetRenderProperty(Name, "OutlineColor", Library.Settings.Name.OutlineColor);              
                             SetRenderProperty(Name, "Outline", true);      
                         end;
@@ -767,7 +856,7 @@ do
                             SetRenderProperty(Distance, "Size", 13);
                             SetRenderProperty(Distance, "Font", Drawing.Fonts["Plex"]);
                             SetRenderProperty(Distance, "Text", ("%s%s"):format(tostring(CurrentConversion), Library.Settings.Measurements[Library.Settings.Distance.Measurement][1]))
-                            SetRenderProperty(Distance, "Color", Library.Settings.Distance.Color);        
+                            SetRenderProperty(Distance, "Color", (IsTarget and Library.Settings.Highlight.TargetColor or IsFriends and Library.Settings.Highlight.FriendColor) or Library.Settings.Distance.Color);        
                             SetRenderProperty(Distance, "OutlineColor", Library.Settings.Distance.OutlineColor);              
                             SetRenderProperty(Distance, "Outline", true);      
                             BottomOffset = BottomOffset + 12;
@@ -781,7 +870,7 @@ do
                             SetRenderProperty(Weapon, "Size", 13);
                             SetRenderProperty(Weapon, "Font", Drawing.Fonts["Plex"]);
                             SetRenderProperty(Weapon, "Text", CurrentWeapon);
-                            SetRenderProperty(Weapon, "Color", Library.Settings.Weapon.Color);        
+                            SetRenderProperty(Weapon, "Color", (IsTarget and Library.Settings.Highlight.TargetColor or IsFriends and Library.Settings.Highlight.FriendColor) or Library.Settings.Weapon.Color);        
                             SetRenderProperty(Weapon, "OutlineColor", Library.Settings.Weapon.OutlineColor);              
                             SetRenderProperty(Weapon, "Outline", true);      
                             BottomOffset = BottomOffset + 12;
@@ -812,6 +901,16 @@ do
                                 SetRenderProperty(Object, "Visible", false);
                             end;
                         end;
+                        if Alive then
+                            for _,g in pairs(Library.GetCharacter(Player):GetChildren()) do -- J please fix this. i literally don't even know what the issue is lol
+                                if (g:IsA("BasePart") or g:IsA("MeshPart") or g:IsA("Part")) and g.Transparency ~= 1 then
+                                    if g:FindFirstChild("Cham") and g:FindFirstChild("Glow") then
+                                        g.Glow:Destroy()
+                                        g.Cham:Destroy()
+                                    end  
+                                end
+                            end
+                        end
                         continue; 
                     end;      
                 else
@@ -826,6 +925,16 @@ do
                             SetRenderProperty(Object, "Visible", false);
                         end;
                     end;
+                    if Alive then
+                        for _,g in pairs(Library.GetCharacter(Player):GetChildren()) do -- J please fix this. i literally don't even know what the issue is lol
+                            if (g:IsA("BasePart") or g:IsA("MeshPart") or g:IsA("Part")) and g.Transparency ~= 1 then
+                                if g:FindFirstChild("Cham") and g:FindFirstChild("Glow") then
+                                    g.Glow:Destroy()
+                                    g.Cham:Destroy()
+                                end  
+                            end
+                        end
+                    end
                     continue; 
                 end;
             else
@@ -840,6 +949,16 @@ do
                         SetRenderProperty(Object, "Visible", false);
                     end;
                 end;
+                if Alive then
+                    for _,g in pairs(Library.GetCharacter(Player):GetChildren()) do -- J please fix this. i literally don't even know what the issue is lol
+                        if (g:IsA("BasePart") or g:IsA("MeshPart") or g:IsA("Part")) and g.Transparency ~= 1 then
+                            if g:FindFirstChild("Cham") and g:FindFirstChild("Glow") then
+                                g.Glow:Destroy()
+                                g.Cham:Destroy()
+                            end  
+                        end
+                    end
+                end
                 continue; 
             end;
         end;
